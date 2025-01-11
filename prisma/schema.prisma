@@ -1,0 +1,171 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for supported currencies
+enum Currency {
+  USD
+  EUR
+  GBP
+  JPY
+  AUD
+}
+
+// Users model with balance in a specific currency
+model Users {
+  user_id       Int         @id @default(autoincrement())
+  username      String
+  email         String      @unique
+  password_hash String
+  date_of_birth DateTime
+  country_id    Int // Foreign key to Countries
+  country       Countries   @relation(fields: [country_id], references: [country_id])
+  balance       Float
+  currency      Currency // Currency enum
+  creation_date DateTime
+  Libraries     Libraries[]
+  Tickets       Tickets[]
+  Support       Support[]
+
+  @@map("users")
+}
+
+model Countries {
+  country_id   Int          @id @default(autoincrement())
+  country_name String
+  country_code String
+  region       String
+  Users        Users[]
+  Publishers   Publishers[]
+  Creators     Creators[]
+
+  @@map("countries")
+}
+
+model Publishers {
+  publisher_id Int       @id @default(autoincrement())
+  name         String
+  country_id   Int // Foreign key to Countries
+  country      Countries @relation(fields: [country_id], references: [country_id])
+  description  String
+  website_url  String
+  Games        Games[]
+
+  @@map("publishers")
+}
+
+model Games {
+  game_id      Int            @id @default(autoincrement())
+  title        String
+  description  String
+  genre        String
+  publisher_id Int // Foreign key to Publishers
+  publisher    Publishers     @relation(fields: [publisher_id], references: [publisher_id])
+  creator_id   Int // Foreign key to Creators
+  creator      Creators       @relation(fields: [creator_id], references: [creator_id])
+  price        Float
+  platform     String
+  rating       Float
+  Achievements Achievements[]
+  LibraryGames LibraryGames[]
+  GameCreators GameCreators[]
+
+  @@map("games")
+}
+
+model Achievements {
+  achievement_id Int    @id @default(autoincrement())
+  game_id        Int // Foreign key to Games
+  game           Games  @relation(fields: [game_id], references: [game_id])
+  name           String
+  description    String
+  points         Int
+
+  @@map("achievements")
+}
+
+model Libraries {
+  library_id   Int            @id @default(autoincrement())
+  user_id      Int // Foreign key to Users
+  user         Users          @relation(fields: [user_id], references: [user_id])
+  LibraryGames LibraryGames[]
+
+  @@map("libraries")
+}
+
+model LibraryGames {
+  id         Int       @id @default(autoincrement())
+  library_id Int // Foreign key to Libraries
+  library    Libraries @relation(fields: [library_id], references: [library_id])
+  game_id    Int // Foreign key to Games
+  game       Games     @relation(fields: [game_id], references: [game_id])
+  added_date DateTime
+  play_time  Float
+
+  @@map("library_games")
+}
+
+model GameCreators {
+  id         Int      @id @default(autoincrement())
+  game_id    Int // Foreign key to Games
+  game       Games    @relation(fields: [game_id], references: [game_id])
+  creator_id Int // Foreign key to Creators
+  creator    Creators @relation(fields: [creator_id], references: [creator_id])
+
+  @@map("game_creators")
+}
+
+model Creators {
+  creator_id   Int            @id @default(autoincrement())
+  name         String
+  country_id   Int // Foreign key to Countries
+  country      Countries      @relation(fields: [country_id], references: [country_id])
+  founded_date DateTime
+  description  String
+  website_url  String
+  GameCreators GameCreators[]
+  Games        Games[]
+
+  @@map("creators")
+}
+
+// New Tickets model for user support tickets
+model Tickets {
+  ticket_id     Int          @id @default(autoincrement())
+  user_id       Int // Foreign key to Users
+  user          Users        @relation(fields: [user_id], references: [user_id])
+  subject       String
+  description   String
+  status        TicketStatus
+  creation_date DateTime     @default(now())
+  Support       Support[]
+
+  @@map("tickets")
+}
+
+// Enum for ticket status
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  RESOLVED
+}
+
+// Support model for managing support teams and responses
+model Support {
+  support_id    Int      @id @default(autoincrement())
+  ticket_id     Int // Foreign key to Tickets
+  ticket        Tickets  @relation(fields: [ticket_id], references: [ticket_id])
+  responder_id  Int // Foreign key to Users (Support Team)
+  responder     Users    @relation(fields: [responder_id], references: [user_id])
+  response      String
+  response_date DateTime @default(now())
+
+  @@map("support")
+}
